@@ -16,13 +16,13 @@ public class Favorite implements Serializable {
         return mQuestionUid;
     }
 
-    public ArrayList<Answer> getAnswers() {
-        return mAnswerArrayList;
-    }
+    //public ArrayList<Answer> getAnswers() {
+    //    return mAnswerArrayList;
+    //}
 
     public Favorite(String uid, String questionUid, ArrayList<Answer> answers) {
         mUid = uid;
         mQuestionUid = questionUid;
-        mAnswerArrayList = answers;
+        //mAnswerArrayList = answers;
     }
 }
