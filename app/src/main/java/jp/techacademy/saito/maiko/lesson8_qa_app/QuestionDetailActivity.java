@@ -6,6 +6,9 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ListView;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -24,6 +27,12 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private QuestionDetailListAdapter mAdapter;
 
     private DatabaseReference mAnswerRef;
+
+    // ★課題追記ここから★
+    private FirebaseUser user;
+    private DatabaseReference favoriteRef;
+    boolean mIsFavorite = false;
+    // ★課題追記ここまで★
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -72,7 +81,17 @@ public class QuestionDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_question_detail);
+
+        // ★課題追記ここから★
+        // ログイン済みのユーザーを取得する
+        user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            // ログインしていなければお気に入りボタン無し
+            setContentView(R.layout.activity_question_detail);
+        } else {
+            setContentView(R.layout.activity_question_detail_logon);
+        }
+        // ★課題追記ここまで★
 
         // 渡ってきたQuestionのオブジェクトを保持する
         Bundle extras = getIntent().getExtras();
@@ -91,7 +110,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 // ログイン済みのユーザーを取得する
-                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                //FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
                 if (user == null) {
                     // ログインしていなければログイン画面に遷移させる
@@ -111,5 +130,33 @@ public class QuestionDetailActivity extends AppCompatActivity {
         DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
         mAnswerRef = dataBaseReference.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid()).child(Const.AnswersPATH);
         mAnswerRef.addChildEventListener(mEventListener);
+
+        // ★課題追記ここから★
+        ImageButton favoriteButton = (ImageButton) findViewById(R.id.favoriteButton);
+        favoriteButton.setOnClickListener(new View.OnClickListener() {
+              @Override
+              public void onClick(View v) {
+                  Log.d("MAIKO_LOG", "お気に入りボタン押下");
+                  Log.d("MAIKO_LOG", "mIsFavorite : " + mIsFavorite);
+                  DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+                  //favoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
+                  favoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid());
+
+                  if (mIsFavorite) {
+                      mIsFavorite = false;
+                      //firebaseに登録し、ボタン表示切り替え
+
+                  } else {
+                      Log.d("MAIKO_LOG", "mIsFavorite : true");
+                      mIsFavorite = true;
+                      //firebaseに登録し、ボタン表示切り替え
+                      favoriteRef.push().setValue(mQuestion.getQuestionUid());
+                      //mAnswerRef.addChildEventListener(mEventListener);
+                  }
+              }
+          });
+        // ★課題追記ここから★
+
+
     }
 }
