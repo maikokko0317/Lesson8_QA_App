@@ -19,6 +19,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.HashMap;
+import com.google.firebase.database.ValueEventListener;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
@@ -32,6 +33,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private FirebaseUser user;
     private DatabaseReference favoriteRef;
     boolean mIsFavorite;
+    private ValueEventListener mFavoriteListener;
     // ★課題追記ここまで★
 
     private ChildEventListener mEventListener = new ChildEventListener() {
@@ -55,6 +57,17 @@ public class QuestionDetailActivity extends AppCompatActivity {
             Answer answer = new Answer(body, name, uid, answerUid);
             mQuestion.getAnswers().add(answer);
             mAdapter.notifyDataSetChanged();
+
+//            Log.d("MAIKO_LOG", "mIsFavorite取得" + dataSnapshot.getKey());
+//            Favorite favorite = dataSnapshot.getValue(Favorite.class);
+//            DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+//            dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid()).addChildEventListener(new ChildEventListener(){
+//                @Override
+//                public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+//            adapter.add((String) dataSnapshot.child("title").getValue());
+//                }
+//            });
+
         }
 
         @Override
@@ -85,22 +98,21 @@ public class QuestionDetailActivity extends AppCompatActivity {
         // ★課題追記ここから★
         // ログイン済みのユーザーを取得する
         user = FirebaseAuth.getInstance().getCurrentUser();
+        Log.d("MAIKO_LOG", "userID : " + user.getUid());
         if (user == null) {
             // ログインしていなければお気に入りボタン無し
             setContentView(R.layout.activity_question_detail);
         } else {
             setContentView(R.layout.activity_question_detail_logon);
         }
-/*
-        Log.d("MAIKO_LOG", "mIsFavorite取得");
-        DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
-        dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid()).addChildEventListener(new ChildEventListener(){
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                adapter.add((String) dataSnapshot.child("title").getValue());
-            }
-        });
-        */
+
+        // Databaseへの参照
+        favoriteRef = FirebaseDatabase.getInstance().getReference().child("favorites").child(user.getUid());
+        if (favoriteRef == null){
+            Log.d("MAIKO_LOG", "favoriteRef無し ");
+        } else {
+            Log.d("MAIKO_LOG", "favoriteRefあり ");
+        }
         // ★課題追記ここまで★
 
         // 渡ってきたQuestionのオブジェクトを保持する
