@@ -33,8 +33,10 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private FirebaseUser user;
     private DatabaseReference mfavoriteRef;
     private Favorite mFavorite;
-    boolean mIsFavorite;
+    boolean mIsFavorite = false;
     private ValueEventListener mFavoriteListener;
+    private ImageButton favoriteOnButton;
+    private ImageButton favoriteOffButton;
     // ★課題追記ここまで★
 
     private ChildEventListener mEventListener = new ChildEventListener() {
@@ -94,11 +96,13 @@ public class QuestionDetailActivity extends AppCompatActivity {
             if (favoriteUid.equals(mQuestion.getQuestionUid())) {
                 Log.d("MAIKO_LOG", "画面上のQuestionUid : " + mQuestion.getQuestionUid());
                 Log.d("MAIKO_LOG", "firebase上のQuestionUid  : " + favoriteUid);
-                setContentView(R.layout.activity_question_detail_on);
                 mIsFavorite = true;
+                Log.d("MAIKO_LOG", "イベントリスナmIsFavorite  : " + mIsFavorite);
+                favoriteOnButton.setVisibility(View.INVISIBLE); //offボタンのみ表示
             } else {
-                setContentView(R.layout.activity_question_detail_off);
                 mIsFavorite = false;
+                Log.d("MAIKO_LOG", "イベントリスナmIsFavorite  : " + mIsFavorite);
+                favoriteOffButton.setVisibility(View.INVISIBLE); //onボタンのみ表示
             }
 
         }
@@ -130,45 +134,89 @@ public class QuestionDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_question_detail);
 
         user = FirebaseAuth.getInstance().getCurrentUser();
         // ★課題追記ここから★
         // ログイン済みのユーザーを取得する
+        Log.d("MAIKO_LOG", "--------質問詳細画面START-------- ");
+        Log.d("MAIKO_LOG", "mIsFavorite : " + mIsFavorite);
         Log.d("MAIKO_LOG", "userID : " + user.getUid());
-        if (user == null) {
-            // ログインしていなければお気に入りボタン無し
-            setContentView(R.layout.activity_question_detail);
-        } else {
-            // Databaseへの参照
-            mfavoriteRef = FirebaseDatabase.getInstance().getReference().child("favorites").child(user.getUid());
-            mfavoriteRef.addChildEventListener(mEventListener2);
 
-            ImageButton favoriteButton = (ImageButton) findViewById(R.id.favoriteButton);
-            favoriteButton.setOnClickListener(new View.OnClickListener() {
+       favoriteOnButton = (ImageButton) findViewById(R.id.favoriteOnButton);
+       favoriteOffButton = (ImageButton) findViewById(R.id.favoriteOffButton);
+
+        // Databaseへの参照
+        mfavoriteRef = FirebaseDatabase.getInstance().getReference().child("favorites").child(user.getUid());
+        mfavoriteRef.addChildEventListener(mEventListener2);
+
+        favoriteOffButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //firebaseから削除し
+                Log.d("MAIKO_LOG", "お気に入りボタン押下");
+                Log.d("MAIKO_LOG", "mIsFavorite : true->false");
+                DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+                mfavoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
+                mfavoriteRef.removeValue();
+            }
+        });
+
+        favoriteOnButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //firebaseに登録
+                Log.d("MAIKO_LOG", "お気に入りボタン押下");
+                Log.d("MAIKO_LOG", "mIsFavorite : false->true");
+                DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+                mfavoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
+                mfavoriteRef.push().setValue(mQuestion.getQuestionUid());
+            }
+        });
+
+
+        /*
+        if (mIsFavorite) {
+            Log.d("MAIKO_LOG", "mIsFavorite : true");
+            favoriteOffButton.setVisibility(View.INVISIBLE); //offボタン非表示
+            favoriteOnButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    //firebaseから削除し、ボタン表示切り替え
+                    Log.d("MAIKO_LOG", "mIsFavorite : true->false");
                     Log.d("MAIKO_LOG", "お気に入りボタン押下");
                     Log.d("MAIKO_LOG", "mIsFavorite : " + mIsFavorite);
                     DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
                     mfavoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
-
-                    if (mIsFavorite) {
-                        mIsFavorite = false;
-                        Log.d("MAIKO_LOG", "mIsFavorite : false");
-                        //firebaseに登録し、ボタン表示切り替え
-                        mfavoriteRef.removeValue();
-
-                    } else {
-                        mIsFavorite = true;
-                        Log.d("MAIKO_LOG", "mIsFavorite : true");
-                        //firebaseに登録し、ボタン表示切り替え
-                        mfavoriteRef.push().setValue(mQuestion.getGenre());//ここの値はなんでも大丈夫
-                        //mAnswerRef.addChildEventListener(mEventListener);
-                    }
+                    mfavoriteRef.removeValue();
+                    mIsFavorite = false;
+                    //favoriteOffButton.setVisibility(View.VISIBLE); //offボタン表示
+                    //favoriteOnButton.setVisibility(View.INVISIBLE); //onボタン非表示
+                }
+            });
+        } else {
+            Log.d("MAIKO_LOG", "mIsFavorite : false");
+            favoriteOnButton.setVisibility(View.INVISIBLE); //onボタン非表示
+            favoriteOffButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //firebaseに登録し、ボタン表示切り替え
+                    Log.d("MAIKO_LOG", "mIsFavorite : false->true");
+                    Log.d("MAIKO_LOG", "お気に入りボタン押下");
+                    Log.d("MAIKO_LOG", "mQuestion.getQuestionUid()" + mQuestion.getQuestionUid().toString());
+                    DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+                    mfavoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
+                    mfavoriteRef.push().setValue(mQuestion.getQuestionUid());
+                    //mAnswerRef.addChildEventListener(mEventListener);
+                    mIsFavorite = true;
+                    //favoriteOnButton.setVisibility(View.VISIBLE); //onボタン表示
+                    //favoriteOffButton.setVisibility(View.INVISIBLE); //offボタン非表示
+                    Log.d("MAIKO_LOG", "mIsFavorite : " + mIsFavorite);
                 }
             });
         }
         // ★課題追記ここまで★
+        */
 
 
         // 渡ってきたQuestionのオブジェクトを保持する

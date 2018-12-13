@@ -25,4 +25,25 @@
         android:layout_margin="16dp"
         android:src="@drawable/plus" />
 
+    <ImageButton
+        android:id="@+id/favoriteOffButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:src="@drawable/favorite_on"
+        android:background="@drawable/custom_button"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="16dp"/>
+
+    <ImageButton
+        android:id="@+id/favoriteOnButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:src="@drawable/favorite_off"
+        android:background="@drawable/custom_button"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="16dp"/>
+
+
 </RelativeLayout>
