@@ -91,7 +91,6 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
             String favoriteUid = dataSnapshot.getKey();
 
-            // 同じAnswerUidのものが存在しているときは何もしない
             if (favoriteUid.equals(mQuestion.getQuestionUid())) {
                 Log.d("MAIKO_LOG", "画面上のQuestionUid : " + mQuestion.getQuestionUid());
                 Log.d("MAIKO_LOG", "firebase上のQuestionUid  : " + favoriteUid);
@@ -131,10 +130,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_question_detail);
 
         user = FirebaseAuth.getInstance().getCurrentUser();
-        /*
         // ★課題追記ここから★
         // ログイン済みのユーザーを取得する
         Log.d("MAIKO_LOG", "userID : " + user.getUid());
@@ -142,10 +139,37 @@ public class QuestionDetailActivity extends AppCompatActivity {
             // ログインしていなければお気に入りボタン無し
             setContentView(R.layout.activity_question_detail);
         } else {
-            setContentView(R.layout.activity_question_detail_on);
+            // Databaseへの参照
+            mfavoriteRef = FirebaseDatabase.getInstance().getReference().child("favorites").child(user.getUid());
+            mfavoriteRef.addChildEventListener(mEventListener2);
+
+            ImageButton favoriteButton = (ImageButton) findViewById(R.id.favoriteButton);
+            favoriteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d("MAIKO_LOG", "お気に入りボタン押下");
+                    Log.d("MAIKO_LOG", "mIsFavorite : " + mIsFavorite);
+                    DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
+                    mfavoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
+
+                    if (mIsFavorite) {
+                        mIsFavorite = false;
+                        Log.d("MAIKO_LOG", "mIsFavorite : false");
+                        //firebaseに登録し、ボタン表示切り替え
+                        mfavoriteRef.removeValue();
+
+                    } else {
+                        mIsFavorite = true;
+                        Log.d("MAIKO_LOG", "mIsFavorite : true");
+                        //firebaseに登録し、ボタン表示切り替え
+                        mfavoriteRef.push().setValue(mQuestion.getGenre());//ここの値はなんでも大丈夫
+                        //mAnswerRef.addChildEventListener(mEventListener);
+                    }
+                }
+            });
         }
         // ★課題追記ここまで★
-        */
+
 
         // 渡ってきたQuestionのオブジェクトを保持する
         Bundle extras = getIntent().getExtras();
@@ -186,40 +210,9 @@ public class QuestionDetailActivity extends AppCompatActivity {
         mAnswerRef.addChildEventListener(mEventListener);
 
         // ★課題追記ここから★
-        // Databaseへの参照
-        mfavoriteRef = FirebaseDatabase.getInstance().getReference().child("favorites").child(user.getUid());
-        mfavoriteRef.addChildEventListener(mEventListener2);
-        if (mfavoriteRef == null){
-            Log.d("MAIKO_LOG", "mfavoriteRef無し ");
-        } else {
-            Log.d("MAIKO_LOG", "mfavoriteRefあり ");
-        }
-
         // お気に入りボタン表示処理
-        ImageButton favoriteButton = (ImageButton) findViewById(R.id.favoriteButton);
-        favoriteButton.setOnClickListener(new View.OnClickListener() {
-              @Override
-              public void onClick(View v) {
-                  Log.d("MAIKO_LOG", "お気に入りボタン押下");
-                  Log.d("MAIKO_LOG", "mIsFavorite : " + mIsFavorite);
-                  DatabaseReference dataBaseReference = FirebaseDatabase.getInstance().getReference();
-                  mfavoriteRef = dataBaseReference.child(Const.FavoritesPATH).child(user.getUid()).child(mQuestion.getQuestionUid());
-
-                  if (mIsFavorite) {
-                      mIsFavorite = false;
-                      Log.d("MAIKO_LOG", "mIsFavorite : false");
-                      //firebaseに登録し、ボタン表示切り替え
-                      mfavoriteRef.removeValue();
-
-                  } else {
-                      mIsFavorite = true;
-                      Log.d("MAIKO_LOG", "mIsFavorite : true");
-                      //firebaseに登録し、ボタン表示切り替え
-                      mfavoriteRef.push().setValue(mQuestion.getGenre());//ここの値はなんでも大丈夫
-                      //mAnswerRef.addChildEventListener(mEventListener);
-                  }
-              }
-          });
+        if (user != null) {
+        }
         // ★課題追記ここから★
 
 
