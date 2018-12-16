@@ -54,4 +54,9 @@ public class Question implements Serializable {
         mBitmapArray = bytes.clone();
         mAnswerArrayList = answers;
     }
+
+    public Question(String genre, String questionUid) {
+        mGenre = Integer.parseInt(genre);
+        mQuestionUid = questionUid;
+    }
 }

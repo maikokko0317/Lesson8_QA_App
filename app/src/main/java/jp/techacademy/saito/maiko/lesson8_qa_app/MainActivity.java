@@ -18,6 +18,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.AdapterView;
+import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -26,6 +27,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,13 +36,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private Toolbar mToolbar;
     private int mGenre = 0;
+    private FirebaseUser user;
 
     // --- ここから ---
     private DatabaseReference mDatabaseReference;
     private DatabaseReference mGenreRef;
+    private DatabaseReference mFavoriteRef;
     private ListView mListView;
     private ArrayList<Question> mQuestionArrayList;
     private QuestionsListAdapter mAdapter;
+    //private FavoriteListAdapter mFavoriteAdapter;
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -119,6 +124,103 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     };
     // --- ここまで追加する ---
 
+    // ★課題追記ここから★
+    private ChildEventListener mEventListener2 = new ChildEventListener() {
+        @Override
+        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+            HashMap map = (HashMap) dataSnapshot.getValue();
+            String genre = (String) map.get("genre");
+
+            Log.d("MAIKO_LOG", "dataSnapshot.getKey()" + dataSnapshot.getKey());
+            Log.d("MAIKO_LOG", "map.get(\"genre\")" + map.get("genre"));
+
+            mFavoriteRef = mDatabaseReference.child(Const.ContentsPATH).child(genre).child(dataSnapshot.getKey());
+            mFavoriteRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot snapshot) {
+                    //ここで質問のデータが snapshotの変数に入っているので，取り出して，
+                    //Questionのインスタンスを作成して，リストに追加する。
+                    HashMap map2 = (HashMap) dataSnapshot.getValue();
+                    String title = (String) map2.get("title");
+                    String body = (String) map2.get("body");
+                    String name = (String) map2.get("name");
+                    String uid = (String) map2.get("uid");
+                    String imageString = (String) map2.get("image");
+                    byte[] bytes;
+                    if (imageString != null) {
+                        bytes = Base64.decode(imageString, Base64.DEFAULT);
+                    } else {
+                        bytes = new byte[0];
+                    }
+
+                    ArrayList<Answer> answerArrayList = new ArrayList<Answer>();
+                    HashMap answerMap2 = (HashMap) map2.get("answers");
+                    if (answerMap2 != null) {
+                        for (Object key : answerMap2.keySet()) {
+                            HashMap temp = (HashMap) answerMap2.get((String) key);
+                            String answerBody = (String) temp.get("body");
+                            String answerName = (String) temp.get("name");
+                            String answerUid = (String) temp.get("uid");
+                            Answer answer = new Answer(answerBody, answerName, answerUid, (String) key);
+                            answerArrayList.add(answer);
+                        }
+                    }
+
+                    Question question = new Question(title, body, name, uid, dataSnapshot.getKey(), mGenre, bytes, answerArrayList);
+                    mQuestionArrayList.add(question);
+                    mAdapter.notifyDataSetChanged();
+                }
+                @Override
+                public void onCancelled(DatabaseError firebaseError) {
+                }
+            });
+        }
+
+
+        @Override
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            HashMap map = (HashMap) dataSnapshot.getValue();
+
+            // 変更があったQuestionを探す
+            for (Question question: mQuestionArrayList) {
+                if (dataSnapshot.getKey().equals(question.getQuestionUid())) {
+                    // このアプリで変更がある可能性があるのは回答(Answer)のみ
+                    question.getAnswers().clear();
+                    HashMap answerMap = (HashMap) map.get("answers");
+                    if (answerMap != null) {
+                        for (Object key : answerMap.keySet()) {
+                            HashMap temp = (HashMap) answerMap.get((String) key);
+                            String answerBody = (String) temp.get("body");
+                            String answerName = (String) temp.get("name");
+                            String answerUid = (String) temp.get("uid");
+                            Answer answer = new Answer(answerBody, answerName, answerUid, (String) key);
+                            question.getAnswers().add(answer);
+                        }
+                    }
+
+                    mAdapter.notifyDataSetChanged();
+                }
+            }
+        }
+
+
+        @Override
+        public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+        }
+
+        @Override
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    };
+    // ★課題追記ここまで★
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -139,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
 
                 // ログイン済みのユーザーを取得する
-                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                user = FirebaseAuth.getInstance().getCurrentUser();
 
                 if (user == null) {
                     // ログインしていなければログイン画面に遷移させる
@@ -163,6 +265,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        // ★課題追記ここから★
+        Log.d("MAIKO_LOG", "★★★★");
+
+        user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+           Menu menu = navigationView.getMenu();
+           MenuItem nav_favorite = menu.findItem(R.id.nav_favorite);
+           nav_favorite.setVisible(false); //お気に入りメニュー非表示
+            Log.d("MAIKO_LOG", "☆☆☆☆");
+        }
+        // ★課題追記ここまで★
+        Log.d("MAIKO_LOG", "☆☆★★");
 
         // --- ここから ---
         // Firebase
@@ -195,6 +310,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
             onNavigationItemSelected(navigationView.getMenu().getItem(0));
         }
+
     }
 
     @Override
@@ -251,8 +367,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (mGenreRef != null) {
             mGenreRef.removeEventListener(mEventListener);
         }
-        mGenreRef = mDatabaseReference.child(Const.ContentsPATH).child(String.valueOf(mGenre));
-        mGenreRef.addChildEventListener(mEventListener);
+
+        if (id == R.id.nav_favorite) {
+            Log.d("MAIKO_LOG", "お気に入り選択");
+            user = FirebaseAuth.getInstance().getCurrentUser();
+            Log.d("MAIKO_LOG", "user.getUid : " + user.getUid());
+            mGenreRef = mDatabaseReference.child(Const.FavoritesPATH).child(user.getUid());
+            mGenreRef.addChildEventListener(mEventListener2);
+        } else {
+            Log.d("MAIKO_LOG", "お気に入り以外");
+            mGenreRef = mDatabaseReference.child(Const.ContentsPATH).child(String.valueOf(mGenre));
+            mGenreRef.addChildEventListener(mEventListener);
+        }
+
         // --- ここまで追加する ---
 
         return true;
